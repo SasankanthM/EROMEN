@@ -1,0 +1,6 @@
+{
+  "name": "EROMEN - Premium Men's Wear | Tex Valley, Perundurai",
+  "description": "Award-worthy luxury menswear boutique at Tex Valley, Perundurai. Bespoke shirts, formal wear, ethnic kurtas, wedding veshtis, and virtual wardrobe styling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
