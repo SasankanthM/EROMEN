@@ -1,0 +1,23 @@
+{
+  "users": [
+    {
+      "id": "usr-cust-01",
+      "name": "Karthik Sundaram",
+      "email": "karthik@eromen.in",
+      "phone": "+91 98427 11223",
+      "password": "customer123",
+      "role": "customer",
+      "createdAt": "2026-11-05T16:13:39.567Z"
+    },
+    {
+      "id": "usr-seller-01",
+      "name": "EROMEN Store Owner",
+      "email": "eromen20@gmail.com",
+      "phone": "+91 98427 54321",
+      "password": "eromen",
+      "role": "seller",
+      "createdAt": "2026-10-16T16:13:39.567Z"
+    }
+  ],
+  "orders": []
+}
