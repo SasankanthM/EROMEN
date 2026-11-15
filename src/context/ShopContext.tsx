@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   Product,
@@ -33,13 +34,11 @@ interface ShopContextType {
   toggleTheme: () => void;
   t: (key: keyof typeof DICTIONARY['en']) => string;
 
-  // Navigation & View state
   activePage: string;
   setActivePage: (page: string) => void;
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (open: boolean) => void;
 
-  // Auth state
   currentUser: User | null;
   loginIntent: string | null;
   setLoginIntent: (intent: string | null) => void;
@@ -50,15 +49,21 @@ interface ShopContextType {
     password: string,
     portalRole?: 'customer' | 'seller'
   ) => Promise<{ success: boolean; error?: string; user?: User }>;
-  register: (name: string, email: string, phone: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>;
+  register: (
+    name: string,
+    email: string,
+    phone: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string; user?: User }>;
   logout: () => void;
   requireAuthForOrder: (intent?: string) => boolean;
 
-  // Orders & Client Panel Dashboard
   orders: Order[];
   ordersLoading: boolean;
   refreshOrders: () => Promise<void>;
-  placeOrder: (payload: PlaceOrderPayload) => Promise<{ success: boolean; order?: Order; error?: string }>;
+  placeOrder: (
+    payload: PlaceOrderPayload
+  ) => Promise<{ success: boolean; order?: Order; error?: string }>;
   updateOrderProcedure: (
     orderId: string,
     updates: {
@@ -69,16 +74,28 @@ interface ShopContextType {
     }
   ) => Promise<{ success: boolean; order?: Order; error?: string }>;
 
-  // Cart
   cart: CartItem[];
-  addToCart: (product: Product, size?: string, color?: ProductColor, quantity?: number) => void;
-  updateQuantity: (productId: string, size: string, colorHex: string, delta: number) => void;
-  removeFromCart: (productId: string, size: string, colorHex: string) => void;
+  addToCart: (
+    product: Product,
+    size?: string,
+    color?: ProductColor,
+    quantity?: number
+  ) => void;
+  updateQuantity: (
+    productId: string,
+    size: string,
+    colorHex: string,
+    delta: number
+  ) => void;
+  removeFromCart: (
+    productId: string,
+    size: string,
+    colorHex: string
+  ) => void;
   clearCart: () => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
 
-  // Coupons & Pricing
   appliedCoupon: Coupon | null;
   applyCoupon: (code: string) => { success: boolean; message: string };
   removeCoupon: () => void;
@@ -89,12 +106,10 @@ interface ShopContextType {
   cartCount: number;
   formatPrice: (val: number) => string;
 
-  // Wishlist
   wishlist: string[];
   toggleWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
 
-  // Modals & Tools
   quickViewProduct: Product | null;
   setQuickViewProduct: (product: Product | null) => void;
   isCheckoutOpen: boolean;
@@ -106,13 +121,11 @@ interface ShopContextType {
   isSizeGuideOpen: boolean;
   setIsSizeGuideOpen: (open: boolean) => void;
 
-  // Filtering & Search
   selectedCategory: ProductCategory;
   setSelectedCategory: (cat: ProductCategory) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
 
-  // Notification Toast
   toast: string | null;
   showToast: (msg: string) => void;
 }
@@ -120,6 +133,7 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 const USER_STORAGE_KEY = 'eromen_auth_user';
+const TOKEN_STORAGE_KEY = 'eromen_auth_token';
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('en');
@@ -127,25 +141,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activePage, setActivePage] = useState<string>('home');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Auth State
+  // Authentication state
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     try {
       const saved = localStorage.getItem(USER_STORAGE_KEY);
-      return saved ? (JSON.parse(saved) as User) : null;
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+      if (!saved || !token) return null;
+
+      return JSON.parse(saved) as User;
     } catch {
       return null;
     }
   });
+
   const [loginIntent, setLoginIntent] = useState<string | null>(null);
   const [loginRoleTab, setLoginRoleTab] = useState<'customer' | 'seller'>('customer');
 
-  // Orders State
+  // Orders state
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // Cart state initialized with 1 luxury item so user sees active cart ready to go
+  // Cart state
   const [cart, setCart] = useState<CartItem[]>(() => {
     const initialItem = PRODUCTS[0];
+
     return [
       {
         product: initialItem,
@@ -156,7 +176,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ];
   });
 
-  const [wishlist, setWishlist] = useState<string[]>(['eromen-eth-01', 'eromen-frm-01']);
+  const [wishlist, setWishlist] = useState<string[]>([
+    'eromen-eth-01',
+    'eromen-frm-01'
+  ]);
+
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
   // Modals
@@ -167,7 +191,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
-  // Filter & Search
+  // Filtering and search
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -176,39 +200,71 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
+
     setTimeout(() => {
       setToast(null);
     }, 3800);
   }, []);
 
-  // Fetch orders whenever currentUser changes
+  // Logout
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    setOrders([]);
+
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+
+    if (activePage === 'client-panel' || activePage === 'my-orders') {
+      setActivePage('home');
+    }
+
+    showToast('Signed out successfully.');
+  }, [activePage, showToast]);
+
+  // Fetch authenticated user's orders
   const refreshOrders = useCallback(async () => {
     if (!currentUser) {
       setOrders([]);
       return;
     }
+
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+    if (!token) {
+      setOrders([]);
+      return;
+    }
+
     setOrdersLoading(true);
+
     try {
-      const params = new URLSearchParams({
-        userId: currentUser.id,
-        role: currentUser.role
+      const res = await fetch('/api/orders', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
-      const res = await fetch(`/api/orders?${params.toString()}`);
+
+      const data = await res.json();
+
       if (res.ok) {
-        const data = await res.json();
         setOrders(data.orders || []);
+      } else if (res.status === 401) {
+        logout();
+      } else {
+        console.error('Failed to fetch orders:', data.error);
       }
     } catch (err) {
-      console.error('Failed to fetch orders', err);
+      console.error('Failed to fetch orders:', err);
     } finally {
       setOrdersLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, logout]);
 
   useEffect(() => {
     refreshOrders();
   }, [refreshOrders]);
 
+  // Login
   const login = async (
     email: string,
     password: string,
@@ -217,69 +273,120 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ email, password, portalRole })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Login failed' };
+        return {
+          success: false,
+          error: data.error || 'Login failed'
+        };
       }
+
+      if (!data.token || !data.user) {
+        return {
+          success: false,
+          error: 'Authentication token was not received.'
+        };
+      }
+
       const loggedInUser = data.user as User;
-      setCurrentUser(loggedInUser);
+
+      localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
 
-      // Eagerly fetch orders right upon login so Owner Panel or My Orders shows orders immediately
+      setCurrentUser(loggedInUser);
+
+      // Fetch orders immediately after login
       try {
-        const params = new URLSearchParams({
-          userId: loggedInUser.id,
-          role: loggedInUser.role
+        const ordersRes = await fetch('/api/orders', {
+          headers: {
+            Authorization: `Bearer ${data.token}`
+          }
         });
-        const ordersRes = await fetch(`/api/orders?${params.toString()}`);
+
+        const ordersData = await ordersRes.json();
+
         if (ordersRes.ok) {
-          const ordersData = await ordersRes.json();
           setOrders(ordersData.orders || []);
         }
-      } catch {
-        // useEffect refreshOrders will retry if needed
+      } catch (err) {
+        console.error('Unable to load orders after login:', err);
       }
 
       showToast(`Welcome back, ${loggedInUser.name}!`);
-      return { success: true, user: loggedInUser };
+
+      return {
+        success: true,
+        user: loggedInUser
+      };
     } catch {
-      return { success: false, error: 'Unable to reach authentication server.' };
+      return {
+        success: false,
+        error: 'Unable to reach authentication server.'
+      };
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string) => {
+  // Customer registration
+  const register = async (
+    name: string,
+    email: string,
+    phone: string,
+    password: string
+  ) => {
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ name, email, phone, password })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Registration failed' };
+        return {
+          success: false,
+          error: data.error || 'Registration failed'
+        };
       }
-      setCurrentUser(data.user);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
-      showToast(`Account created! Welcome to EROMEN, ${data.user.name}.`);
-      return { success: true, user: data.user as User };
+
+      if (!data.token || !data.user) {
+        return {
+          success: false,
+          error: 'Authentication token was not received.'
+        };
+      }
+
+      const registeredUser = data.user as User;
+
+      localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(registeredUser));
+
+      setCurrentUser(registeredUser);
+
+      showToast(`Account created! Welcome to EROMEN, ${registeredUser.name}.`);
+
+      return {
+        success: true,
+        user: registeredUser
+      };
     } catch {
-      return { success: false, error: 'Unable to reach registration server.' };
+      return {
+        success: false,
+        error: 'Unable to reach registration server.'
+      };
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setOrders([]);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    if (activePage === 'client-panel' || activePage === 'my-orders') {
-      setActivePage('home');
-    }
-    showToast('Signed out successfully.');
-  };
-
+  // Authentication requirement before checkout
   const requireAuthForOrder = (intent: string = 'checkout'): boolean => {
     if (!currentUser) {
       setLoginIntent(intent);
@@ -287,40 +394,59 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsCartOpen(false);
       setQuickViewProduct(null);
       setActivePage('login');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+
       showToast('Please sign in or register first to place your order.');
+
       return false;
     }
+
     return true;
   };
 
+  // Language
   const toggleLanguage = () => {
     setLanguage(prev => (prev === 'en' ? 'ta' : 'en'));
-    showToast(language === 'en' ? 'தமிழ் மொழி மாற்றப்பட்டது' : 'Switched to English');
+
+    showToast(
+      language === 'en'
+        ? 'தமிழ் மொழி மாற்றப்பட்டது'
+        : 'Switched to English'
+    );
   };
 
+  // Theme
   const toggleTheme = () => {
     setTheme(prev => {
       const next = prev === 'dark' ? 'light' : 'dark';
+
       if (next === 'light') {
         document.documentElement.classList.add('light-mode');
       } else {
         document.documentElement.classList.remove('light-mode');
       }
+
       return next;
     });
   };
 
+  // Translation
   const t = (key: keyof typeof DICTIONARY['en']): string => {
     const dict = DICTIONARY[language] || DICTIONARY['en'];
+
     return (dict as Record<string, string>)[key] || DICTIONARY['en'][key] || key;
   };
 
+  // Price formatting
   const formatPrice = (val: number) => {
     return `₹${val.toLocaleString('en-IN')}`;
   };
 
-  // Cart actions
+  // Add to cart
   const addToCart = (
     product: Product,
     size?: string,
@@ -342,22 +468,23 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updated = [...prev];
         updated[existingIndex].quantity += quantity;
         return updated;
-      } else {
-        return [
-          ...prev,
-          {
-            product,
-            selectedSize: finalSize,
-            selectedColor: finalColor,
-            quantity
-          }
-        ];
       }
+
+      return [
+        ...prev,
+        {
+          product,
+          selectedSize: finalSize,
+          selectedColor: finalColor,
+          quantity
+        }
+      ];
     });
 
     showToast(`Added "${product.name}" (${finalSize}) to your bag`);
   };
 
+  // Update quantity
   const updateQuantity = (
     productId: string,
     size: string,
@@ -373,15 +500,24 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
             item.selectedColor.hex === colorHex
           ) {
             const newQty = item.quantity + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
+
+            return newQty > 0
+              ? { ...item, quantity: newQty }
+              : null;
           }
+
           return item;
         })
         .filter(Boolean) as CartItem[]
     );
   };
 
-  const removeFromCart = (productId: string, size: string, colorHex: string) => {
+  // Remove from cart
+  const removeFromCart = (
+    productId: string,
+    size: string,
+    colorHex: string
+  ) => {
     setCart(prev =>
       prev.filter(
         item =>
@@ -392,75 +528,121 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           )
       )
     );
+
     showToast('Item removed from bag');
   };
 
+  // Clear cart
   const clearCart = () => {
     setCart([]);
   };
 
-  // Wishlist actions
+  // Wishlist
   const toggleWishlist = (productId: string) => {
     setWishlist(prev => {
       if (prev.includes(productId)) {
         showToast('Removed from wishlist');
+
         return prev.filter(id => id !== productId);
-      } else {
-        showToast('Added to your personal wishlist');
-        return [...prev, productId];
       }
+
+      showToast('Added to your personal wishlist');
+
+      return [...prev, productId];
     });
   };
 
   const isInWishlist = (productId: string) => wishlist.includes(productId);
 
-  // Totals calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  // Cart totals
+  const subtotal = cart.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+
+  const cartCount = cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
   const shippingFee = subtotal > 1999 || subtotal === 0 ? 0 : 150;
 
   let discountAmount = 0;
+
   if (appliedCoupon) {
     if (appliedCoupon.discountPercent) {
-      discountAmount = Math.round((subtotal * appliedCoupon.discountPercent) / 100);
+      discountAmount = Math.round(
+        (subtotal * appliedCoupon.discountPercent) / 100
+      );
     } else if (appliedCoupon.discountAmount) {
       discountAmount = appliedCoupon.discountAmount;
     }
   }
+
   const total = Math.max(0, subtotal - discountAmount + shippingFee);
 
+  // Apply coupon
   const applyCoupon = (code: string) => {
     const cleanCode = code.trim().toUpperCase();
-    const found = COUPONS.find(c => c.code.toUpperCase() === cleanCode);
+
+    const found = COUPONS.find(
+      c => c.code.toUpperCase() === cleanCode
+    );
 
     if (!found) {
-      return { success: false, message: 'Invalid coupon code. Try EROFIRST or PONGAL2026' };
+      return {
+        success: false,
+        message: 'Invalid coupon code. Try EROFIRST or PONGAL2026'
+      };
     }
+
     if (found.minSpend && subtotal < found.minSpend) {
       return {
         success: false,
         message: `Coupon requires minimum order value of ${formatPrice(found.minSpend)}`
       };
     }
+
     setAppliedCoupon(found);
-    return { success: true, message: `Applied ${found.code}: ${found.description}` };
+
+    return {
+      success: true,
+      message: `Applied ${found.code}: ${found.description}`
+    };
   };
 
+  // Remove coupon
   const removeCoupon = () => {
     setAppliedCoupon(null);
     showToast('Coupon removed');
   };
 
+  // Place order
   const placeOrder = async (payload: PlaceOrderPayload) => {
     if (!currentUser) {
-      return { success: false, error: 'You must be logged in to place an order.' };
+      return {
+        success: false,
+        error: 'You must be logged in to place an order.'
+      };
     }
+
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'Please log in again.'
+      };
+    }
+
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
-          userId: currentUser.id,
           ...payload,
           items: cart.map(c => ({
             productId: c.product.id,
@@ -480,17 +662,31 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           couponCode: appliedCoupon?.code
         })
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to place order' };
+        return {
+          success: false,
+          error: data.error || 'Failed to place order'
+        };
       }
+
       await refreshOrders();
-      return { success: true, order: data.order as Order };
+
+      return {
+        success: true,
+        order: data.order as Order
+      };
     } catch {
-      return { success: false, error: 'Network error while placing order.' };
+      return {
+        success: false,
+        error: 'Network error while placing order.'
+      };
     }
   };
 
+  // Update order procedure (owner only)
   const updateOrderProcedure = async (
     orderId: string,
     updates: {
@@ -501,26 +697,59 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   ) => {
     if (!currentUser || currentUser.role !== 'seller') {
-      return { success: false, error: 'Only seller/owner accounts can update order procedures.' };
+      return {
+        success: false,
+        error: 'Only seller/owner accounts can update order procedures.'
+      };
     }
+
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+    if (!token) {
+      return {
+        success: false,
+        error: 'Please log in again.'
+      };
+    }
+
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...updates,
-          sellerRole: currentUser.role
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to update order.' };
+        return {
+          success: false,
+          error: data.error || 'Failed to update order.'
+        };
       }
-      setOrders(prev => prev.map(o => (o.id === orderId ? (data.order as Order) : o)));
+
+      setOrders(prev =>
+        prev.map(o =>
+          o.id === orderId
+            ? (data.order as Order)
+            : o
+        )
+      );
+
       showToast(`Order ${orderId} procedure updated!`);
-      return { success: true, order: data.order as Order };
+
+      return {
+        success: true,
+        order: data.order as Order
+      };
     } catch {
-      return { success: false, error: 'Network error updating order procedure.' };
+      return {
+        success: false,
+        error: 'Network error updating order procedure.'
+      };
     }
   };
 
@@ -595,8 +824,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useShop = () => {
   const context = useContext(ShopContext);
+
   if (!context) {
     throw new Error('useShop must be used within a ShopProvider');
   }
+
   return context;
 };
